@@ -1,67 +1,45 @@
-Skip to content
-quandoanhopmat-bot
-ict-smc-xauusd-quiz
-Repository navigation
-Code
-Issues
-Pull requests
-Actions
-Projects
-Wiki
-Security and quality
-Insights
-Settings
-Workflows
-.github/workflows/build.yml
-build.yml
-Filter workflow runs
-Search runs
-Workflow runs for .github/workflows/build.yml
-3 workflow runs
-Update build.yml
-failed:
-.github/workflows/build.yml
-#3:
-Commit
-a817f2f
-pushed
-by
-quandoanhopmat-bot
-main
-1 minute ago
-Failure
-.github/workflows/build.yml
-failed:
-.github/workflows/build.yml
-#2:
-Manually run
-by
-quandoanhopmat-bot
-main
-7 minutes ago
-44s
-Create build.yml
-failed:
-.github/workflows/build.yml
-#1:
-Commit
-0151865
-pushed
-by
-quandoanhopmat-bot
-main
-9 minutes ago
-1m 10s
-Footer
-© 2026 GitHub, Inc.
-Footer navigation
-Terms
-Privacy
-Security
-Status
-Community
-Docs
-Contact
-Manage cookies
-Do not share my personal information
+name: Build Android APK
 
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - 'ICT_SMC_Quiz_Android_Project.zip'
+      - '.github/workflows/build.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Java
+        uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Set up Gradle
+        uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '8.9'
+
+      - name: Extract Android project
+        run: |
+          unzip -o ICT_SMC_Quiz_Android_Project.zip -d project
+          test -f project/ICT_SMC_Quiz_Android/settings.gradle.kts
+
+      - name: Build debug APK
+        working-directory: project/ICT_SMC_Quiz_Android
+        run: gradle --no-daemon assembleDebug
+
+      - name: Upload APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: ICT-SMC-Quiz-APK
+          path: project/ICT_SMC_Quiz_Android/app/build/outputs/apk/debug/app-debug.apk
+          if-no-files-found: error
