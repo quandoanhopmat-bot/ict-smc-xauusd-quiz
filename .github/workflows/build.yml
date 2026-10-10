@@ -1,44 +1,59 @@
-
 name: Build Android APK
 
 on:
-  workflow_dispatch:
-  push:
-    paths:
-      - 'ICT_SMC_Quiz_Android_Project.zip'
-      - '.github/workflows/build.yml'
+workflow_dispatch:
+push:
+paths:
+- 'ICT_SMC_Quiz_Android_Project.zip'
+- '.github/workflows/build.yml'
 
 jobs:
-  build:
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
+build:
+runs-on: ubuntu-latest
+steps:
+- name: Checkout repository
+uses: actions/checkout@v4
 
-      - name: Set up Java
-        uses: actions/setup-java@v4
-        with:
-          distribution: temurin
-          java-version: '17'
+  - name: Set up Java
+    uses: actions/setup-java@v5
+    with:
+      distribution: temurin
+      java-version: '17'
 
-      - name: Set up Gradle
-        uses: gradle/actions/setup-gradle@v4
-        with:
-          gradle-version: '8.9'
+  - name: Set up Gradle
+    uses: gradle/actions/setup-gradle@v4
+    with:
+      gradle-version: '8.9'
 
-      - name: Extract Android project
-        run: |
-          unzip ICT_SMC_Quiz_Android_Project.zip -d project
-          find project -name settings.gradle -o -name settings.gradle.kts
+  - name: Extract Android project
+    run: |
+      unzip ICT_SMC_Quiz_Android_Project.zip -d project
 
-      - name: Build APK
-        run: |
-          PROJECT_DIR="$(dirname "$(find project -name settings.gradle -o -name settings.gradle.kts | head -n 1)")"
-          cd "$PROJECT_DIR"
-          gradle assembleDebug
+  - name: Fix Java version
+    run: |
+      BUILD_FILE="$(find project -path '*/app/build.gradle.kts' | head -n 1)"
+      if [ -z "$BUILD_FILE" ]; then
+        echo "Khong tim thay app/build.gradle.kts"
+        find project -type f
+        exit 1
+      fi
+      sed -i 's/JavaVersion.VERSION_1_8/JavaVersion.VERSION_17/g' "$BUILD_FILE"
+      sed -i 's/JavaVersion.VERSION_8/JavaVersion.VERSION_17/g' "$BUILD_FILE"
 
-      - name: Upload APK
-        uses: actions/upload-artifact@v4
-        with:
-          name: ICT-SMC-Quiz-APK
-          path: project/**/app/build/outputs/apk/debug/*.apk
+  - name: Build APK
+    run: |
+      SETTINGS_FILE="$(find project -name settings.gradle -o -name settings.gradle.kts | head -n 1)"
+      if [ -z "$SETTINGS_FILE" ]; then
+        echo "Khong tim thay settings.gradle"
+        find project -type f
+        exit 1
+      fi
+      cd "$(dirname "$SETTINGS_FILE")"
+      gradle assembleDebug
+
+  - name: Upload APK
+    uses: actions/upload-artifact@v4
+    with:
+      name: ICT-SMC-Quiz-APK
+      path: project/**/app/build/outputs/apk/debug/*.apk
+      if-no-files-found: error
